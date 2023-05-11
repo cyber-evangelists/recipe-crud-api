@@ -1,117 +1,58 @@
 from fastapi import FastAPI, Body
+from config import db
 from models.model import RecipeSchema, UpdateRecipeSchema
-from fastapi.encoders import jsonable_encoder
-    
+from bson import ObjectId
+
 
 app = FastAPI()
 
-recipes = [
-    {
-        "id": 1,
-        "name": "Spaghetti Carbonara",
-        "ingredients": ["Spaghetti", "Eggs", "Pancetta", "Parmesan Cheese"]
-    },
-    {
-        "id": 2,
-        "name": "Chicken Alfredo",
-        "ingredients": ["Chicken Breasts", "Heavy Cream", "Garlic", "Pasta"]
-    },
-    {
-        "id": 3,
-        "name": "Beef Stroganoff",
-        "ingredients": ["Beef Sirloin", "Sour Cream", "Onion", "Mushrooms"]
-    },
-    
-    {
-        "id": 4,
-        "name": "Donuts",
-        "ingredients": ["Flour", "Milk", "Sugar", "Vegetable Oil"]
-    },
-    
-    {
-        "id": 5,
-        "name": "Beef Tacos",
-        "ingredients": ["Ground beef", "Taco seasoning", "Taco shells", "Lettuce", "Tomatoes", "Cheese", "Sour cream"]
-    },
-]
-
-@app.get("/", tags=["Home"])
+@app.get("/", tags=["Home"])    # Home 
 def get_root() -> dict:
     return {
         "message": "Welcome to the MyRecipe app."
     }
     
-@app.get("/recipes", tags=["Recipe"])
+@app.get("/recipes", tags=["Recipe"])       # Get all Recipes
 def get_recipes() -> dict:
-    return {
-        "data": recipes
-    }
+    data = db.all()
+    return {"data": data}
 
-@app.get("/recipe/{id}", tags=["Recipe"])
-def get_recipe(id: int) -> dict:
-    if id > len(recipes) or id < 1:
-        return {
-            "error": "Invalid ID passed."
-        }
-
-    for recipe in recipes:
-        if recipe['id'] == id:
-            return {
-                "data": [
-                    recipe
-                ]
-            }
-
-    return {
-        "error": "No such recipe with ID {} exist".format(id)
-    }
+@app.get("/recipe/{id}", tags=["Recipe"])     # Get one recipe by id
+def get_recipe(id: str) -> dict:                  
+    if not ObjectId.is_valid(id):
+        return {"error": "Invalid id"}
     
-@app.post("/recipe", tags=["Recipe"])
+    data = db.get_one(ObjectId(id))
+    return {"data": data}
+       
+
+@app.post("/recipe", tags=["Recipe"])       # Add recipe to DB
 def add_recipe(recipe: RecipeSchema = Body(...)) -> dict:
-    recipe.id = len(recipes) + 1
-    recipes.append(recipe.dict())
-    return {
-        "message": "Recipe added successfully."
-    }
+    id = db.add(recipe)
+    if id is None:
+        return {"This recipe already exists": recipe.name}
+    return {"inserted": "Recipe added successfully", "id": id, "name": recipe.name} 
     
-@app.put("/recipe", tags=["Recipe"])
-def update_recipe(id: int, recipe_data: UpdateRecipeSchema) -> dict:
-    stored_recipe = {}
-    for recipe in recipes:
-        if recipe["id"] == id:
-            stored_recipe = recipe
-        
-    if not stored_recipe:
-        return {
-                "error": "No such recipe exists."
-            }
     
-    stored_recipe_model = RecipeSchema(**stored_recipe)
-    update_recipe = recipe_data.dict(exclude_unset=True)
-    updated_recipe = stored_recipe_model.copy(update=update_recipe)
-    recipes[recipes.index(stored_recipe_model)] = jsonable_encoder(updated_recipe)
+@app.put("/recipe", tags=["Recipe"])        # Update the recipe
+def update_recipe(recipe_data: UpdateRecipeSchema = Body(...)) -> dict:
+    if not ObjectId.is_valid(recipe_data.id):
+        return {"error": "Invalid id"}
+    recipe_data.id = ObjectId(recipe_data.id)
+    data = db.update(recipe_data)
+    
+    if data:
+        return {"updated": "Recipe updated successfully", "updated_count": data, "name": recipe_data.name}
+    return {"updated_count": data}
 
-    return {
-        "message": "Recipe updated successfully."
-    }
 
-@app.delete("/recipe/{id}", tags=["Recipe"])
-def delete_recipe(id: int) -> dict:
-    if id > len(recipes) or id < 1:
-        return {
-            "error": "Invalid ID passed"
-        }
-
-    for recipe in recipes:
-        if recipe['id'] == id:
-            recipes.remove(recipe)
-            return {
-                "message": "Recipe deleted successfully."
-            }
-
-    return {
-        "error": "No such recipe with ID {} exist".format(id)
-    }
+@app.delete("/recipe/{id}", tags=["Recipe"])        # delete a recipe
+def delete_recipe(id: str) -> dict:
+    if not ObjectId.is_valid(id):
+        return {"error": "Invalid id"}
+    
+    data = db.delete(ObjectId(id))
+    return {"inserted": "Recipe deleted successfully", "inserted_id": id, "deleted count": data}
     
 
 

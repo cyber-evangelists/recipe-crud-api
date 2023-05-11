@@ -3,11 +3,10 @@ from typing import Optional, List
 
 
 class RecipeSchema(BaseModel):
-    id: Optional[int]                   # Optional
     name: str = Field(...)              # Required
     ingredients: List[str] = Field(...) # Required
 
-    class Config:
+    class Config: 
         schema_extra = {
             "example": {
                 "name": "Donuts",
@@ -17,12 +16,14 @@ class RecipeSchema(BaseModel):
 
 
 class UpdateRecipeSchema(BaseModel):
+    id: str
     name: Optional[str]
     ingredients: Optional[List[str]]
 
     class Config:
         schema_extra = {
             "example": {
+                "id": "645b8955711af8133e5a484",
                 "name": "Buns",
                 "ingredients": ["Flour", "Milk", "Sugar", "Vegetable Oil"]
             }
