@@ -1,15 +1,13 @@
 # This file is responsible for signing , encoding , decoding and returning JWTS
 import time
 from typing import Dict
-
 import jwt
-# from decouple import config
+from dotenv import load_dotenv
+import os 
 
-# JWT_SECRET = config("secret")
-# JWT_ALGORITHM = config("algorithm")
-
-JWT_SECRET = "d47eb0378b7071d97ac7"
-JWT_ALGORITHM = "HS256"
+load_dotenv()
+JWT_SECRET = os.environ["secret"]
+JWT_ALGORITHM = os.environ["algorithm"]
 
 # function used for signing the JWT string
 def signJWT(email: str) -> Dict[str, str]:
@@ -28,3 +26,8 @@ def decodeJWT(token: str) -> dict:
         return decoded_token if decoded_token["expires"] >= time.time() else None
     except:
         return {}
+    
+
+
+    
+    

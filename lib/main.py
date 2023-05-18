@@ -4,7 +4,7 @@ from db import startup_db
 from router import router
 from encrypt import encrypt
 from auth.auth_handler import signJWT
-
+from email_ import set_email
 
 app = FastAPI()
 
@@ -32,8 +32,10 @@ async def login(email: str, password: str) -> dict:
     db_user= await User.find_one({"email": email, "password": password})
     if db_user:
         token = signJWT(email)
+        set_email(email)
         return{"user": "logged in", "email": email, "token": token}
     return {"error": "invalid credentials"}
+
     
 app.include_router(router, prefix="/recipe")
 
