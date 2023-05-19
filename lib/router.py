@@ -4,15 +4,18 @@ from beanie import PydanticObjectId
 from bson import ObjectId
 from auth.auth_bearer import JWTBearer
 from email_ import get_email
-from models.response import recipeResponse, All
-
+from models.response import recipeResponse, allRecipes
 
 router = APIRouter()
-    
+
 @router.get("/all", tags=["Recipe"])       # Get all Recipes
-async def get_recipes() -> All:
+async def get_recipes() -> allRecipes:
     data = await Recipe.find_all().to_list()
-    return data
+    data_2 = []
+    for recipe in data:
+        filtered_dict = recipe.dict(exclude={"id", "created_by"})
+        data_2.append(filtered_dict)
+    return {"all_recipes": data_2}
         
 
 @router.get("/{id}", tags=["Recipe"])     # Get one recipe by id
@@ -33,7 +36,7 @@ async def add_recipe(recipe: Recipe) -> recipeResponse:
     
     
 @router.put("/{id}", dependencies=[Depends(JWTBearer())], tags=["Recipe"])        # Update the recipe
-async def update_recipe(recipe_data: Recipe, id) -> recipeResponse:
+async def update_recipe(id, recipe_data: Recipe) -> recipeResponse:
     id = ObjectId(id)
     recipe_to_update = await Recipe.get(id)
     
@@ -42,7 +45,7 @@ async def update_recipe(recipe_data: Recipe, id) -> recipeResponse:
         recipe_to_update.ingredients = recipe_data.ingredients
         await recipe_to_update.save()
         return {"name": recipe_to_update.name , "ingredients": recipe_to_update.ingredients, "message": "recipe updated"}
-    return HTTPException(status_code=401, detail="unauthorized access")
+    raise HTTPException(status_code=401, detail="unauthorized access")
         
     
 
@@ -50,13 +53,14 @@ async def update_recipe(recipe_data: Recipe, id) -> recipeResponse:
 async def delete_recipe(id) -> recipeResponse:
     id = ObjectId(id)
     recipe_to_delete = await Recipe.get(id)
-    
+    print(get_email())
     if recipe_to_delete.created_by == get_email():
         name = recipe_to_delete.name
         ingredients = recipe_to_delete.ingredients
         await recipe_to_delete.delete()
         return {"name": name , "ingredients": ingredients, "message": "recipe deleted"}
-    return HTTPException(status_code=401, detail="unauthorized access")
+    else:
+        raise HTTPException(status_code=401, detail="unauthorized access")
         
 
 

@@ -3,14 +3,21 @@ from typing import List
 
 class recipeResponse(BaseModel):
     name: str
-    ingredients: List[str] | None = None
-    message: str | None = None
+    ingredients: List[str] 
+    message: str 
     
-class All(BaseModel):
-    _id: str
+class allRecipes(BaseModel):
+    all_recipes: List[dict]
+    
+    
+class signUp(BaseModel):
+    message: str
     name: str
-    ingredients: List[str]
-    created_by: str
+    
+class signIn(BaseModel):
+    message: str
+    email: str
+    token: str
     
 
     
